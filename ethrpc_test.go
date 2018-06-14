@@ -878,6 +878,80 @@ func (s *EthRPCTestSuite) TestEthGetTransactionReceipt() {
 	}, receipt.Logs[0])
 }
 
+func (s *EthRPCTestSuite) TestGetUncle() {
+  s.registerResponseError(errors.New("Error"))
+  uncle, err := s.rpc.getUncle("eth_getUncleByBlockHashAndIndex", "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3", 0)
+  s.Require().NotNil(err)
+
+  result := ` {
+        "difficulty": "0x3ff800000",
+        "extraData": "0x59617465732052616e64616c6c202d2045746865724e696e6a61",
+        "gasLimit": "0x1388",
+        "gasUsed": "0x0",
+        "hash": "0x5cd50096dbb856a6d1befa6de8f9c20decb299f375154427d90761dc0b101109",
+        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "miner": "0xc8ebccc5f5689fa8659d83713341e5ad19349448",
+        "mixHash": "0xf8c94dfe61cf26dcdf8cffeda337cf6a903d65c449d7691a022837f6e2d99459",
+        "nonce": "0x68b769c5451a7aea",
+        "number": "0x1",
+        "parentHash": "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+        "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+        "stateRoot": "0x1e6e030581fd1873b4784280859cd3b3c04aa85520f08c304cf5ee63d3935add",
+        "timestamp": "0x55ba4242",
+        "totalDifficulty": "0x7ff800000",
+        "transactions": [],
+        "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "uncles": []
+  }`
+  hash := "0x5cd50096dbb856a6d1befa6de8f9c20decb299f375154427d90761dc0b101109"
+  s.registerResponse(result, func(body []byte) {
+    s.methodEqual(body, "eth_getUncleByBlockHashAndIndex")
+  })
+
+  uncle, err = s.rpc.getUncle("eth_getUncleByBlockHashAndIndex")
+  s.Require().Nil(err)
+  s.Require().NotNil(uncle)
+  s.Require().Equal(hash, uncle.Hash)
+  s.Require().Equal(1, uncle.Number)
+  s.Require().Equal("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3", uncle.ParentHash)
+  s.Require().Equal("0x68b769c5451a7aea", uncle.Nonce)
+  s.Require().Equal("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347", uncle.Sha3Uncles)
+  s.Require().Equal("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", uncle.LogsBloom)
+  s.Require().Equal("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421", uncle.TransactionsRoot)
+  s.Require().Equal("0x1e6e030581fd1873b4784280859cd3b3c04aa85520f08c304cf5ee63d3935add", uncle.StateRoot)
+  s.Require().Equal("0xc8ebccc5f5689fa8659d83713341e5ad19349448", uncle.Miner)
+  s.Require().Equal(newBigInt("17171480576"), uncle.Difficulty)
+  s.Require().Equal(newBigInt("34351349760"), uncle.TotalDifficulty)
+  s.Require().Equal("0x59617465732052616e64616c6c202d2045746865724e696e6a61", uncle.ExtraData)
+  s.Require().Equal(5000, uncle.GasLimit)
+  s.Require().Equal(0, uncle.GasUsed)
+  s.Require().Equal(1438270018, uncle.Timestamp)
+  s.Require().Equal(0, len(uncle.Uncles))
+  s.Require().Equal(0, len(uncle.Transactions))
+}
+
+func (s *EthRPCTestSuite) TestEthGetUncleByBlockHashAndIndex() {
+  hash := "0x111"
+  s.registerResponse(`{}`, func(body []byte) {
+    s.methodEqual(body, "eth_getUncleByBlockHashAndIndex")
+    s.paramsEqual(body, `["0x111", "0x0"]`)
+  })
+
+  _, err := s.rpc.EthGetUncleByBlockHashAndIndex(hash, 0)
+  s.Require().Nil(err)
+}
+
+func (s *EthRPCTestSuite) TestEthGetUncleByBlockNumberAndIndex() {
+  number := 1234234333
+  s.registerResponse(`{}`, func(body []byte) {
+    s.methodEqual(body, "eth_getUncleByBlockNumberAndIndex")
+    s.paramsEqual(body, `["0x4990ebdd", "0x0"]`)
+  })
+
+  _, err := s.rpc.EthGetUncleByBlockNumberAndIndex(number, 0)
+  s.Require().Nil(err)
+}
+
 func (s *EthRPCTestSuite) TestGetTransaction() {
 	result := `{
         "blockHash": "0x8b0404b2e5173e7abdbfc98f521d50808486ccaff3cd0a6344e0bb6c7aa8cef0",
